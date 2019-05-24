@@ -12,15 +12,15 @@
 #define ADS1256_DIFFERENTIAL_INPUT    1 
 
  /*  0  Single-ended input  8 channel?? 1 Differential input  4 channe */
-#define ADC1256_INPUT_MODE   ADS1256_DIFFERENTIAL_INPUT//ADS1256_SIGNGLE_INPUT
+#define ADC1256_INPUT_MODE   ADS1256_SIGNGLE_INPUT        //Single-ended input 
+//#define ADC1256_INPUT_MODE   ADS1256_DIFFERENTIAL_INPUT  //ADifferential input
 
 #if (ADC1256_INPUT_MODE == ADS1256_SIGNGLE_INPUT)
 #define ADS1256_CHANNEL_NUM    8
 #else
 #define ADS1256_CHANNEL_NUM    4
 #endif
-
-
+ 
 
 //*************************** o¨º?¡§¨°?***********************************************/
 /*Registers' Address*/
@@ -107,6 +107,7 @@ typedef struct
 {
     uint8_t gain;		/* GAIN  */
     uint8_t sampling_rate;	/* DATA output  speed*/  
+    uint8_t input_mode;
     struct{
         uint8_t ADS1256_SINGLE_CH0:1;
         uint8_t ADS1256_SINGLE_CH1:1;
@@ -131,7 +132,7 @@ typedef struct{
     int32_t adc_sum[ADS1256_CHANNEL_NUM];
     uint32_t adc_cout[ADS1256_CHANNEL_NUM];
     int32_t adc_result[ADS1256_CHANNEL_NUM];	 /* ADC  Conversion value */ 
-    float voltage_mv[ADS1256_CHANNEL_NUM];	 /* channel voltage*/ 
+    int32_t voltage_uv[ADS1256_CHANNEL_NUM];	 /* channel voltage*/ 
 }ads125x_channel_info_t;
 
 /* USER CODE BEGIN Prototypes */

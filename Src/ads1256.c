@@ -5,34 +5,35 @@
 #include "spi.h"
 #include "usart.h"
 #include "usb.h"
-#include "gpio.h"
-#include "ads1256.h"
+#include "gpio.h" 
 #include "core_cm3.h"
-
+#include "ads1256.h"
 
 #define SPI2_HANDLE_TIMEOUT  10
 
 /* Private variables ---------------------------------------------------------*/
- 
+
+#define ADS125X_VREF_VOLTAGE      2.412 //uint:V
+
 ads125x_conf_t ads125x_conf={
     .gain = PGA_1,
     .sampling_rate = DATARATE_30K, 
-    
+    .input_mode = ADC1256_INPUT_MODE,
     /*single-ended input channel:1=enable, 0=disable*/
     .single_input_channel.ADS1256_SINGLE_CH0 = 1,
-    .single_input_channel.ADS1256_SINGLE_CH1 = 1,
-    .single_input_channel.ADS1256_SINGLE_CH2 = 1,
-    .single_input_channel.ADS1256_SINGLE_CH3 = 1,
-    .single_input_channel.ADS1256_SINGLE_CH4 = 1,
-    .single_input_channel.ADS1256_SINGLE_CH5 = 1,
+    .single_input_channel.ADS1256_SINGLE_CH1 = 0,
+    .single_input_channel.ADS1256_SINGLE_CH2 = 0,
+    .single_input_channel.ADS1256_SINGLE_CH3 = 0,
+    .single_input_channel.ADS1256_SINGLE_CH4 = 0,
+    .single_input_channel.ADS1256_SINGLE_CH5 = 0,
     .single_input_channel.ADS1256_SINGLE_CH6 = 1,
-    .single_input_channel.ADS1256_SINGLE_CH7 = 1,
+    .single_input_channel.ADS1256_SINGLE_CH7 = 0,
     
     /*differential input channel:1=enable, 0=disable*/
     .diff_input_channel.ADS1256_DIFF_CH0 = 1,
-    .diff_input_channel.ADS1256_DIFF_CH1 = 1,
-    .diff_input_channel.ADS1256_DIFF_CH2 = 1,
-    .diff_input_channel.ADS1256_DIFF_CH3 = 1, 
+    .diff_input_channel.ADS1256_DIFF_CH1 = 0,
+    .diff_input_channel.ADS1256_DIFF_CH2 = 0,
+    .diff_input_channel.ADS1256_DIFF_CH3 = 0, 
 };
 
 ads125x_channel_info_t ads125x_channel_info; 
@@ -77,16 +78,15 @@ void ads1256_delay_us(uint32_t usec)
 *	The return value:  NULL
 *********************************************************************************************************
 */
-static float ads1256_conv2mv(int32_t adc_result)
+static int32_t ads1256_conv2uv(int32_t adc_result)
 { 
-    /* Vin = ( (2*Vr) / G ) * ( x / (2^23 -1)) */  
-    float vref = 2.5;
-    
-    float voltage_mv = (float)adc_result *2.0 * vref / 8388607.0 ;
-    voltage_mv /= (float)(ads125x_conf.gain+1);
-    voltage_mv *= 1000;
+    /* Vin = ( (2*Vr) / G ) * ( x / (2^23 -1)) */   
+      
+    float voltage_uv = (float)adc_result *2.0 * ADS125X_VREF_VOLTAGE / 8388607.0 ;
+    voltage_uv /= (float)(ads125x_conf.gain+1);
+    voltage_uv *= 1000000;
    
-    return voltage_mv;
+    return (int32_t)voltage_uv;
 }
 /*
 *********************************************************************************************************
@@ -105,7 +105,7 @@ static void ads1256_write_reg(uint8_t reg_addr, uint8_t wdata)
     wrbuf[1] = 0; /*Write the register number */
     wrbuf[2] = wdata;
     
-    HAL_SPI_Transmit(&hspi2,wrbuf,sizeof(wrbuf),SPI2_HANDLE_TIMEOUT); 	/*send register value */   
+    while(  HAL_SPI_Transmit(&hspi2,wrbuf,sizeof(wrbuf),SPI2_HANDLE_TIMEOUT) != HAL_OK ); 	/*send register value */   
 } 
 
 /*
@@ -124,9 +124,8 @@ static void ads1256_write_regs(uint8_t reg_addr, uint8_t *msg, uint8_t len)
     wrbuf[0] = CMD_WREG | reg_addr;	/*Write command register */
     wrbuf[1] = len-1; /*Write the register number */
     
-    HAL_SPI_Transmit(&hspi2,wrbuf,sizeof(wrbuf),SPI2_HANDLE_TIMEOUT);  
-    
-    HAL_SPI_Transmit(&hspi2,msg,len,SPI2_HANDLE_TIMEOUT); 	/*send register value */   
+    while( HAL_SPI_Transmit(&hspi2,wrbuf,sizeof(wrbuf),SPI2_HANDLE_TIMEOUT) != HAL_OK );  /*send register value */    
+    while( HAL_SPI_Transmit(&hspi2,msg,len,SPI2_HANDLE_TIMEOUT) != HAL_OK ); 	/*send register value */   
 } 
 
 /*
@@ -144,13 +143,13 @@ static void ads1256_read_regs(uint8_t reg_addr, uint8_t *msg, uint8_t len)
     
     wrbuf[0] = CMD_RREG | reg_addr;	/*Write command register */
     wrbuf[1] = len-1; /*Write the register number */ 
-    HAL_SPI_Transmit(&hspi2,wrbuf,sizeof(wrbuf),SPI2_HANDLE_TIMEOUT); 	/*send register value */  
+    while( HAL_SPI_Transmit(&hspi2,wrbuf,sizeof(wrbuf),SPI2_HANDLE_TIMEOUT) != HAL_OK ); /*send register value */  
     
     HAL_GPIO_WritePin(DBG_OUT_GPIO_Port, DBG_OUT_Pin, GPIO_PIN_SET);
     ads1256_delay_us(10);	/*delay time */
     HAL_GPIO_WritePin(DBG_OUT_GPIO_Port, DBG_OUT_Pin, GPIO_PIN_RESET);
     
-    HAL_SPI_Receive(&hspi2, msg, len, SPI2_HANDLE_TIMEOUT);  /* Read the register values */  
+    while( HAL_SPI_Receive(&hspi2, msg, len, SPI2_HANDLE_TIMEOUT) != HAL_OK );  /* Read the register values */  
 }
 
 /*
@@ -163,7 +162,7 @@ static void ads1256_read_regs(uint8_t reg_addr, uint8_t *msg, uint8_t len)
 */
 static void ads1256_write_cmd(uint8_t _cmd)
 { 
-    HAL_SPI_Transmit(&hspi2,&_cmd,sizeof(_cmd),SPI2_HANDLE_TIMEOUT); 	/*send comand value */   
+    while( HAL_SPI_Transmit(&hspi2,&_cmd,sizeof(_cmd),SPI2_HANDLE_TIMEOUT) != HAL_OK ) ;  /*send comand value */   
 } 
 
 /*
@@ -211,7 +210,7 @@ static int32_t ads1256_read_result(void)
     ads1256_delay_us(10);	/*delay time  */
      
     /*Read the sample results 24bit*/ 
-    HAL_SPI_Receive(&hspi2, buf, sizeof(buf), SPI2_HANDLE_TIMEOUT);  
+    while( HAL_SPI_Receive(&hspi2, buf, sizeof(buf), SPI2_HANDLE_TIMEOUT) != HAL_OK ); 
       
     read = ((uint32_t)buf[0] << 16) & 0x00FF0000;
     read |= ((uint32_t)buf[1] << 8);  /* Pay attention to It is wrong   read |= (buf[1] << 8) */
@@ -225,6 +224,38 @@ static int32_t ads1256_read_result(void)
     return (int32_t)read;
 }  
 
+
+/*
+*********************************************************************************************************
+*	name:  
+*	function:    
+*	parameter: NULL
+*	The return value:  NULL
+*********************************************************************************************************
+*/
+static uint8_t ads1256_select_next_channel(uint8_t channel)
+{
+    uint8_t selected=0,i;
+     
+    i = (ads125x_channel_info.channel_num >= ADS1256_CHANNEL_NUM - 1)?0:ads125x_channel_info.channel_num+1;
+    for( ;i<ADS1256_CHANNEL_NUM;i++){
+        if( channel & (1<<i) ){
+            ads125x_channel_info.channel_num = i;
+            selected = 1;
+            break;
+        }   
+    }
+    if( selected == 0x00 ){
+        for(i=0;i<ads125x_channel_info.channel_num;i++){
+            if( channel & (1<<i) ){
+                ads125x_channel_info.channel_num = i; 
+                selected = 1;
+                break;
+            }   
+        } 
+    }
+    return selected;
+}
 /*
 *********************************************************************************************************
 *	name: ads1256_drdy_isr
@@ -235,44 +266,76 @@ static int32_t ads1256_read_result(void)
 */
 void ads1256_drdy_isr(void)
 {
+    uint8_t selected;
     uint8_t adc_result_idx = ads125x_channel_info.channel_num;
-   
-    ads125x_channel_info.channel_num ++;
-    if(ads125x_channel_info.channel_num >= ADS1256_CHANNEL_NUM){
-        ads125x_channel_info.channel_num = 0;
+    
+    if ( ads125x_conf.input_mode == ADS1256_SIGNGLE_INPUT ){/*  0  Single-ended input  8 channel?? 1 Differential input  4 channe */
+        selected = ads1256_select_next_channel( *(uint8_t*)&ads125x_conf.single_input_channel );
+        
+        if(selected){
+            ads1256_set_single_channel(ads125x_channel_info.channel_num);	/*Switch channel mode */
+            ads1256_delay_us(2);
+            
+            ads1256_write_cmd(CMD_SYNC);
+            ads1256_delay_us(2);
+            
+            ads1256_write_cmd(CMD_WAKEUP);
+            ads1256_delay_us(10);
+        } 
+        
+        ads125x_channel_info.adc_result[adc_result_idx] = ads1256_read_result();
+        ads125x_channel_info.voltage_uv[adc_result_idx] = ads1256_conv2uv( ads125x_channel_info.adc_result[adc_result_idx]);
     }
-    
-#if ( ADC1256_INPUT_MODE == ADS1256_SIGNGLE_INPUT ) /*  0  Single-ended input  8 channel?? 1 Differential input  4 channe */
-    ads1256_set_single_channel(ads125x_channel_info.channel_num);	/*Switch channel mode */
-    ads1256_delay_us(2);
-    
-    ads1256_write_cmd(CMD_SYNC);
-    ads1256_delay_us(2);
-    
-    ads1256_write_cmd(CMD_WAKEUP);
-    ads1256_delay_us(10);
-//  
-    ads125x_channel_info.adc_result[adc_result_idx] = ads1256_read_result();
-    ads125x_channel_info.voltage_mv[adc_result_idx] = ads1256_conv2mv( ads125x_channel_info.adc_result[adc_result_idx]);
-    
-#else
-    /*DiffChannal*/  
-    ads1256_set_diff_channel(ads125x_channel_info.channel_num);	/* change DiffChannal */
-    ads1256_delay_us(2);
-    
-    ads1256_write_cmd(CMD_SYNC);
-    ads1256_delay_us(2);
-    
-    ads1256_write_cmd(CMD_WAKEUP);
-    ads1256_delay_us(10);
-    
-    ads125x_channel_info.adc_result[adc_result_idx] = ads1256_read_result();	
-    ads125x_channel_info.voltage_mv[adc_result_idx] = ads1256_conv2mv( ads125x_channel_info.adc_result[adc_result_idx]);
-#endif
-} 
+    else{
+        /*DiffChannal*/  
+        ads1256_set_diff_channel(ads125x_channel_info.channel_num);	/* change DiffChannal */
+        ads1256_delay_us(2);
+        
+        ads1256_write_cmd(CMD_SYNC);
+        ads1256_delay_us(2);
+        
+        ads1256_write_cmd(CMD_WAKEUP);
+        ads1256_delay_us(10);
+        
+        ads125x_channel_info.adc_result[adc_result_idx] = ads1256_read_result();	
+        ads125x_channel_info.voltage_uv[adc_result_idx] = ads1256_conv2uv( ads125x_channel_info.adc_result[adc_result_idx]);
+    } 
+}   
 
-
-
+/*
+*********************************************************************************************************
+*	name:  
+*	function:    
+*	parameter: NULL
+*	The return value:  NULL
+*********************************************************************************************************
+*/
+void ads1256_channel_init(void)
+{     
+    uint8_t channel,i;
+    
+    ads125x_channel_info.channel_num = 0;
+    if ( ads125x_conf.input_mode == ADS1256_SIGNGLE_INPUT ){/*  0  Single-ended input  8 channel?? 1 Differential input  4 channe */
+        channel = *(uint8_t*)&ads125x_conf.single_input_channel; 
+        for(i=0;i<ADS1256_CHANNEL_NUM;i++){
+            if( channel &(1<<i) ){
+                ads125x_channel_info.channel_num = i;
+                break;
+            }
+        }
+        ads1256_set_single_channel(ads125x_channel_info.channel_num);
+    }
+    else{
+        channel = *(uint8_t*)&ads125x_conf.diff_input_channel; 
+        for(i=0;i<ADS1256_CHANNEL_NUM;i++){
+            if( channel &(1<<i) ){
+                ads125x_channel_info.channel_num = i;
+                break;
+            }
+        }
+        ads1256_set_diff_channel(ads125x_channel_info.channel_num);
+    } 
+}
 /*
 *********************************************************************************************************
 *	name: ads1256_init(
@@ -308,10 +371,19 @@ uint8_t ads1256_init(void)
     regs_buf[REG_DRATE]=ads125x_conf.sampling_rate;
     ads1256_write_regs(REG_STATUS,regs_buf,sizeof(regs_buf));
     
+    while(!HAL_GPIO_ReadPin(DRYD_GPIO_Port,DRYD_Pin));
     while(HAL_GPIO_ReadPin(DRYD_GPIO_Port,DRYD_Pin)); 
     ads1256_read_regs(0,regs_buf,sizeof(regs_buf));
     
-    //ads1256_write_cmd(CMD_WAKEUP);
+    while(HAL_GPIO_ReadPin(DRYD_GPIO_Port,DRYD_Pin));
+    ads1256_channel_init();
+    ads1256_write_cmd(CMD_SYNC);  
+    ads1256_write_cmd(CMD_WAKEUP); 
+    
+    while(HAL_GPIO_ReadPin(DRYD_GPIO_Port,DRYD_Pin)); 
+    ads1256_write_cmd(CMD_SELFCAL); //self-calibration
+    while(!HAL_GPIO_ReadPin(DRYD_GPIO_Port,DRYD_Pin));
+    while(HAL_GPIO_ReadPin(DRYD_GPIO_Port,DRYD_Pin)); 
     
     HAL_NVIC_EnableIRQ(EXTI4_IRQn);
     

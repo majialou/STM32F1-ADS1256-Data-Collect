@@ -48,6 +48,7 @@
 
 /* USER CODE BEGIN Includes */
 #include "ads1256.h"
+#include "uart_comm.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -66,14 +67,17 @@ void SystemClock_Config(void);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
-
-
+ 
 system_conf_t system_conf={
     .is_adc_drdy = 0,
     .is_timer_expired = 0,
     .report_interval_cout = 5,  //数据上报间隔
 };
 static uint32_t tick_cout = 0;
+
+extern ads125x_channel_info_t ads125x_channel_info; 
+
+
 /* USER CODE END 0 */
 
 /**
@@ -126,6 +130,14 @@ int main(void)
       if( system_conf.is_adc_drdy ){
           system_conf.is_adc_drdy = 0;
           ads1256_drdy_isr(); 
+      }
+      if( system_conf.is_timer_expired ){
+           system_conf.is_timer_expired = 0;
+           tick_cout ++;
+           if( tick_cout >= system_conf.report_interval_cout){
+               tick_cout = 0;
+               uart_send_msg((uint8_t*)ads125x_channel_info.voltage_uv,sizeof(int32_t),sizeof(ads125x_channel_info.voltage_uv));
+           }
       }
   }
   /* USER CODE END 3 */

@@ -980,6 +980,12 @@
       <file>
         <name>$PROJ_DIR$\..\Src\ads1256.h</name>
       </file>
+      <file>
+        <name>$PROJ_DIR$\..\Src\uart_comm.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\..\Src\uart_comm.h</name>
+      </file>
     </group>
     <group>
       <name>EWARM</name>
