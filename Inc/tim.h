@@ -64,7 +64,7 @@ void MX_TIM1_Init(void);
 void MX_TIM4_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-
+void hal_tim1_rpti_init(uint16_t intv);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

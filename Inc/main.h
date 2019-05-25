@@ -75,7 +75,7 @@ typedef struct{
     uint8_t is_adc_drdy:1;
     uint8_t is_timer_expired:1; 
     
-    uint32_t report_interval_cout; 
+    uint16_t report_interval_cout; 
 }system_conf_t;
 
 extern system_conf_t system_conf;

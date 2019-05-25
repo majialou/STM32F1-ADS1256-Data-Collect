@@ -13,6 +13,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 
+//#define ADS125X_VREF_VOLTAGE      1.486//uint:V
 #define ADS125X_VREF_VOLTAGE      2.412 //uint:V
 
 ads125x_conf_t ads125x_conf={
@@ -21,19 +22,19 @@ ads125x_conf_t ads125x_conf={
     .input_mode = ADC1256_INPUT_MODE,
     /*single-ended input channel:1=enable, 0=disable*/
     .single_input_channel.ADS1256_SINGLE_CH0 = 1,
-    .single_input_channel.ADS1256_SINGLE_CH1 = 0,
-    .single_input_channel.ADS1256_SINGLE_CH2 = 0,
-    .single_input_channel.ADS1256_SINGLE_CH3 = 0,
-    .single_input_channel.ADS1256_SINGLE_CH4 = 0,
-    .single_input_channel.ADS1256_SINGLE_CH5 = 0,
+    .single_input_channel.ADS1256_SINGLE_CH1 = 1,
+    .single_input_channel.ADS1256_SINGLE_CH2 = 1,
+    .single_input_channel.ADS1256_SINGLE_CH3 = 1,
+    .single_input_channel.ADS1256_SINGLE_CH4 = 1,
+    .single_input_channel.ADS1256_SINGLE_CH5 = 1,
     .single_input_channel.ADS1256_SINGLE_CH6 = 1,
-    .single_input_channel.ADS1256_SINGLE_CH7 = 0,
+    .single_input_channel.ADS1256_SINGLE_CH7 = 1,
     
     /*differential input channel:1=enable, 0=disable*/
-    .diff_input_channel.ADS1256_DIFF_CH0 = 1,
-    .diff_input_channel.ADS1256_DIFF_CH1 = 0,
-    .diff_input_channel.ADS1256_DIFF_CH2 = 0,
-    .diff_input_channel.ADS1256_DIFF_CH3 = 0, 
+    .diff_input_channel.ADS1256_DIFF_CH0 = 1, /*AINp=AIN0, AINn=AIN1*/
+    .diff_input_channel.ADS1256_DIFF_CH1 = 0, /*AINp=AIN2, AINn=AIN3*/
+    .diff_input_channel.ADS1256_DIFF_CH2 = 0, /*AINp=AIN4, AINn=AIN5*/
+    .diff_input_channel.ADS1256_DIFF_CH3 = 0, /*AINp=AIN6, AINn=AIN7*/
 };
 
 ads125x_channel_info_t ads125x_channel_info; 
@@ -274,29 +275,22 @@ void ads1256_drdy_isr(void)
         
         if(selected){
             ads1256_set_single_channel(ads125x_channel_info.channel_num);	/*Switch channel mode */
-            ads1256_delay_us(2);
-            
-            ads1256_write_cmd(CMD_SYNC);
-            ads1256_delay_us(2);
-            
-            ads1256_write_cmd(CMD_WAKEUP);
-            ads1256_delay_us(10);
+            ads1256_write_cmd(CMD_SYNC); 
+            ads1256_write_cmd(CMD_WAKEUP); 
         } 
         
         ads125x_channel_info.adc_result[adc_result_idx] = ads1256_read_result();
         ads125x_channel_info.voltage_uv[adc_result_idx] = ads1256_conv2uv( ads125x_channel_info.adc_result[adc_result_idx]);
     }
     else{
-        /*DiffChannal*/  
-        ads1256_set_diff_channel(ads125x_channel_info.channel_num);	/* change DiffChannal */
-        ads1256_delay_us(2);
-        
-        ads1256_write_cmd(CMD_SYNC);
-        ads1256_delay_us(2);
-        
-        ads1256_write_cmd(CMD_WAKEUP);
-        ads1256_delay_us(10);
-        
+        /*DiffChannal*/ 
+         selected = ads1256_select_next_channel( *(uint8_t*)&ads125x_conf.diff_input_channel );
+         
+         if(selected){
+             ads1256_set_diff_channel(ads125x_channel_info.channel_num);	/* change DiffChannal */
+             ads1256_write_cmd(CMD_SYNC); 
+             ads1256_write_cmd(CMD_WAKEUP); 
+        }
         ads125x_channel_info.adc_result[adc_result_idx] = ads1256_read_result();	
         ads125x_channel_info.voltage_uv[adc_result_idx] = ads1256_conv2uv( ads125x_channel_info.adc_result[adc_result_idx]);
     } 

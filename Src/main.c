@@ -71,10 +71,9 @@ void SystemClock_Config(void);
 system_conf_t system_conf={
     .is_adc_drdy = 0,
     .is_timer_expired = 0,
-    .report_interval_cout = 5,  //数据上报间隔
+    .report_interval_cout = 5,  //report interval,uint:ms, max=32767
 };
-static uint32_t tick_cout = 0;
-
+ 
 extern ads125x_channel_info_t ads125x_channel_info; 
 
 
@@ -113,10 +112,10 @@ int main(void)
   MX_SPI2_Init();
   MX_USART1_UART_Init();
   MX_USB_PCD_Init();
-  MX_TIM1_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
-    ads1256_init();
+  hal_tim1_rpti_init(system_conf.report_interval_cout);
+  ads1256_init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -129,15 +128,14 @@ int main(void)
   /* USER CODE BEGIN 3 */
       if( system_conf.is_adc_drdy ){
           system_conf.is_adc_drdy = 0;
+          __disable_irq();
           ads1256_drdy_isr(); 
+          __enable_irq(); 
       }
       if( system_conf.is_timer_expired ){
-           system_conf.is_timer_expired = 0;
-           tick_cout ++;
-           if( tick_cout >= system_conf.report_interval_cout){
-               tick_cout = 0;
-               uart_send_msg((uint8_t*)ads125x_channel_info.voltage_uv,sizeof(int32_t),sizeof(ads125x_channel_info.voltage_uv));
-           }
+          system_conf.is_timer_expired = 0; 
+          uart_send_msg((uint8_t*)ads125x_channel_info.voltage_uv,sizeof(int32_t),sizeof(ads125x_channel_info.voltage_uv));
+          
       }
   }
   /* USER CODE END 3 */
@@ -203,6 +201,31 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+/**
+* @brief  EXTI line detection callbacks.
+* @param  GPIO_Pin: Specifies the pins connected EXTI line
+* @retval None
+*/
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if(  GPIO_Pin == DRYD_Pin ){
+        system_conf.is_adc_drdy = 1;
+    } 
+}
+
+
+/**
+* @brief  Period elapsed callback in non blocking mode 
+* @param  htim : TIM handle
+* @retval None
+*/
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{  
+    if(htim->Instance==TIM1){
+        system_conf.is_timer_expired  = 1;
+    }
+}
+
 
 /* USER CODE END 4 */
 
