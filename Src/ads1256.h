@@ -102,12 +102,14 @@
 #define DETECT_OFF               (0x00<<3)
 #define DETECT_ON_2UA            (0x02<<3)
  
-
+#pragma pack(1)
 typedef struct
 {
     uint8_t gain;		/* GAIN  */
     uint8_t sampling_rate;	/* DATA output  speed*/  
-    uint8_t input_mode;
+    uint8_t input_mode;          /*single-ended input channel:1=enable, 0=disable*/
+    uint16_t report_interval_ms; /**/
+ 
     struct{
         uint8_t ADS1256_SINGLE_CH0:1;
         uint8_t ADS1256_SINGLE_CH1:1;
@@ -118,14 +120,18 @@ typedef struct
         uint8_t ADS1256_SINGLE_CH6:1;
         uint8_t ADS1256_SINGLE_CH7:1;
     }single_input_channel;
+ 
     struct{
         uint8_t ADS1256_DIFF_CH0:1;
         uint8_t ADS1256_DIFF_CH1:1;
         uint8_t ADS1256_DIFF_CH2:1;
         uint8_t ADS1256_DIFF_CH3:1; 
     }diff_input_channel;
-}ads125x_conf_t;
+ 
+}ads125x_conf_t; 
+#pragma pack()
 
+  
 typedef struct{
     
     uint8_t channel_num;
@@ -133,7 +139,7 @@ typedef struct{
     uint32_t adc_cout[ADS1256_CHANNEL_NUM];
     int32_t adc_result[ADS1256_CHANNEL_NUM];	 /* ADC  Conversion value */ 
     int32_t voltage_uv[ADS1256_CHANNEL_NUM];	 /* channel voltage*/ 
-}ads125x_channel_info_t;
+}ads125x_channel_info_t; 
 
 /* USER CODE BEGIN Prototypes */
 

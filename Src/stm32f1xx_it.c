@@ -37,6 +37,7 @@
 
 /* USER CODE BEGIN 0 */
 #include "main.h"
+#include "uart_comm.h"
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
@@ -205,7 +206,7 @@ void EXTI4_IRQHandler(void)
   /* USER CODE END EXTI4_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_4);
   /* USER CODE BEGIN EXTI4_IRQn 1 */
- system_conf.is_adc_drdy = 1;
+  
   /* USER CODE END EXTI4_IRQn 1 */
 }
 
@@ -261,7 +262,7 @@ void USART1_IRQHandler(void)
   /* USER CODE END USART1_IRQn 0 */
   HAL_UART_IRQHandler(&huart1);
   /* USER CODE BEGIN USART1_IRQn 1 */
-
+  uart_idle_rxcb();
   /* USER CODE END USART1_IRQn 1 */
 }
 

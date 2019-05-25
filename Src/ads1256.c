@@ -20,15 +20,17 @@ ads125x_conf_t ads125x_conf={
     .gain = PGA_1,
     .sampling_rate = DATARATE_30K, 
     .input_mode = ADC1256_INPUT_MODE,
+    .report_interval_ms = 5, //uint:ms
+    
     /*single-ended input channel:1=enable, 0=disable*/
     .single_input_channel.ADS1256_SINGLE_CH0 = 1,
     .single_input_channel.ADS1256_SINGLE_CH1 = 1,
     .single_input_channel.ADS1256_SINGLE_CH2 = 1,
     .single_input_channel.ADS1256_SINGLE_CH3 = 1,
-    .single_input_channel.ADS1256_SINGLE_CH4 = 1,
-    .single_input_channel.ADS1256_SINGLE_CH5 = 1,
-    .single_input_channel.ADS1256_SINGLE_CH6 = 1,
-    .single_input_channel.ADS1256_SINGLE_CH7 = 1,
+    .single_input_channel.ADS1256_SINGLE_CH4 = 0,
+    .single_input_channel.ADS1256_SINGLE_CH5 = 0,
+    .single_input_channel.ADS1256_SINGLE_CH6 = 0,
+    .single_input_channel.ADS1256_SINGLE_CH7 = 0,
     
     /*differential input channel:1=enable, 0=disable*/
     .diff_input_channel.ADS1256_DIFF_CH0 = 1, /*AINp=AIN0, AINn=AIN1*/

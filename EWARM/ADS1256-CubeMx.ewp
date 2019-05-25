@@ -980,6 +980,12 @@
         <name>$PROJ_DIR$\..\Src\ads1256.h</name>
       </file>
       <file>
+        <name>$PROJ_DIR$\..\Src\storage.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\..\Src\storage.h</name>
+      </file>
+      <file>
         <name>$PROJ_DIR$\..\Src\uart_comm.c</name>
       </file>
       <file>
@@ -1029,6 +1035,9 @@
       </file>
       <file>
         <name>$PROJ_DIR$/../Src/dma.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$/../Src/iwdg.c</name>
       </file>
       <file>
         <name>$PROJ_DIR$/../Src/spi.c</name>
@@ -1119,6 +1128,9 @@
       </file>
       <file>
         <name>$PROJ_DIR$/../Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_gpio_ex.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$/../Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_iwdg.c</name>
       </file>
       <file>
         <name>$PROJ_DIR$/../Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_spi.c</name>

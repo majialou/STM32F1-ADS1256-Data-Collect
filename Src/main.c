@@ -40,6 +40,7 @@
 #include "main.h"
 #include "stm32f1xx_hal.h"
 #include "dma.h"
+#include "iwdg.h"
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
@@ -49,6 +50,7 @@
 /* USER CODE BEGIN Includes */
 #include "ads1256.h"
 #include "uart_comm.h"
+#include "storage.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -68,15 +70,12 @@ void SystemClock_Config(void);
 
 /* USER CODE BEGIN 0 */
  
-system_conf_t system_conf={
-    .is_adc_drdy = 0,
-    .is_timer_expired = 0,
-    .report_interval_cout = 5,  //report interval,uint:ms, max=32767
-};
- 
-extern ads125x_channel_info_t ads125x_channel_info; 
+extern ads125x_channel_info_t ads125x_channel_info;  
+extern ads125x_conf_t ads125x_conf; 
+extern uart_data_stuc_t uart_data_stuc;
+static uint8_t is_adc_drdy,is_timer_expired;
 
-
+static void uart_packet_parse( uart_data_stuc_t *msg );
 /* USER CODE END 0 */
 
 /**
@@ -113,9 +112,12 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USB_PCD_Init();
   MX_TIM4_Init();
+  MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
-  hal_tim1_rpti_init(system_conf.report_interval_cout);
+  falsh_read_conf((uint8_t*)&ads125x_conf,sizeof(ads125x_conf));
+  hal_tim1_rpti_init(ads125x_conf.report_interval_ms);
   ads1256_init();
+  uart_init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -126,17 +128,24 @@ int main(void)
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
-      if( system_conf.is_adc_drdy ){
-          system_conf.is_adc_drdy = 0;
+      if( is_adc_drdy ){
+          is_adc_drdy = 0;
           __disable_irq();
           ads1256_drdy_isr(); 
           __enable_irq(); 
       }
-      if( system_conf.is_timer_expired ){
-          system_conf.is_timer_expired = 0; 
+      
+      if( is_timer_expired && HAL_GPIO_ReadPin(DRYD_GPIO_Port,DRYD_Pin)){
+          is_timer_expired = 0; 
           uart_send_msg((uint8_t*)ads125x_channel_info.voltage_uv,sizeof(int32_t),sizeof(ads125x_channel_info.voltage_uv));
-          
       }
+      
+      if(uart_data_stuc.rxlen){ 
+          uart_packet_parse(&uart_data_stuc);
+          uart_data_stuc.rxlen = 0;
+      }
+
+      HAL_IWDG_Refresh(&hiwdg);
   }
   /* USER CODE END 3 */
 
@@ -155,10 +164,11 @@ void SystemClock_Config(void)
 
     /**Initializes the CPU, AHB and APB busses clocks 
     */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
@@ -208,8 +218,8 @@ void SystemClock_Config(void)
 */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-    if(  GPIO_Pin == DRYD_Pin ){
-        system_conf.is_adc_drdy = 1;
+    if( GPIO_Pin == DRYD_Pin ){
+        is_adc_drdy = 1;
     } 
 }
 
@@ -222,11 +232,35 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {  
     if(htim->Instance==TIM1){
-        system_conf.is_timer_expired  = 1;
+        is_timer_expired  = 1;
+        HAL_GPIO_TogglePin(DBG_OUT_GPIO_Port, DBG_OUT_Pin);
     }
 }
 
-
+/**
+* @brief  Parse the packets from the serial port to confirm  
+* @param  htim : TIM handle
+* @retval None
+* reference to data struct "ads125x_conf_t"
+*  write configuration to flash
+* | 1byte | 1byte |  1byte  | 1byte  |   1byte   |  1byte  |   2byte  |   1byte    |  1byte    | 1byte | 
+* | 0xFE  | 0x5A  | LEN=0x7 | GAIN   | DATA RATE | IN MODE | INTERVAL | Single AIN | Diff AIN  | 0x5C  |
+*  read configuration from flash
+* | 1byte | 1byte |  1byte  |  1byte | 
+* | 0xFE  | 0xA5  | LEN=0x0 |  0x5C  |
+*  single channel AIN0 
+*/
+static void uart_packet_parse( uart_data_stuc_t *msg )
+{  
+    if( msg->rxbuf[0] == 0xFE &&  msg->rxbuf[3+msg->rxbuf[2]] == 0x5c){
+        if( msg->rxbuf[1] == 0x5A && msg->rxbuf[2] == sizeof(ads125x_conf_t)){
+            falsh_write_conf(&msg->rxbuf[3],msg->rxbuf[2]); 
+        }
+        else if(msg->rxbuf[1] == 0xA5 &&  msg->rxbuf[2] == 0 ){
+            
+        }
+    }  
+}
 /* USER CODE END 4 */
 
 /**

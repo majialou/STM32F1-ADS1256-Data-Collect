@@ -1,8 +1,8 @@
 /**
   ******************************************************************************
-  * @file           : main.h
-  * @brief          : Header for main.c file.
-  *                   This file contains the common defines of the application.
+  * File Name          : IWDG.c
+  * Description        : This file provides code for the configuration
+  *                      of the IWDG instances.
   ******************************************************************************
   ** This notice applies to any and all portions of this file
   * that are not between comment pairs USER CODE BEGIN and
@@ -37,52 +37,39 @@
   ******************************************************************************
   */
 
-/* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __MAIN_H__
-#define __MAIN_H__
-
 /* Includes ------------------------------------------------------------------*/
+#include "iwdg.h"
 
-/* USER CODE BEGIN Includes */
-#include "stm32f1xx_hal.h"
-#include "stdint.h"
-/* USER CODE END Includes */
+/* USER CODE BEGIN 0 */
 
-/* Private define ------------------------------------------------------------*/
+/* USER CODE END 0 */
 
-#define DRYD_Pin GPIO_PIN_4
-#define DRYD_GPIO_Port GPIOA
-#define DRYD_EXTI_IRQn EXTI4_IRQn
-#define REST_Pin GPIO_PIN_6
-#define REST_GPIO_Port GPIOA
-#define PDWN_Pin GPIO_PIN_7
-#define PDWN_GPIO_Port GPIOA
-#define CSN_Pin GPIO_PIN_12
-#define CSN_GPIO_Port GPIOB
-#define DBG_OUT_Pin GPIO_PIN_15
-#define DBG_OUT_GPIO_Port GPIOA
+IWDG_HandleTypeDef hiwdg;
 
-/* ########################## Assert Selection ############################## */
-/**
-  * @brief Uncomment the line below to expanse the "assert_param" macro in the 
-  *        HAL drivers code
-  */
-/* #define USE_FULL_ASSERT    1U */
+/* IWDG init function */
+void MX_IWDG_Init(void)
+{
 
-/* USER CODE BEGIN Private defines */
- 
-/* USER CODE END Private defines */
+  hiwdg.Instance = IWDG;
+  hiwdg.Init.Prescaler = IWDG_PRESCALER_32;
+  hiwdg.Init.Reload = 4095;
+  if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
 
-#ifdef __cplusplus
- extern "C" {
-#endif
-void _Error_Handler(char *, int);
-
-#define Error_Handler() _Error_Handler(__FILE__, __LINE__)
-#ifdef __cplusplus
 }
-#endif
 
-#endif /* __MAIN_H__ */
+/* USER CODE BEGIN 1 */
+
+/* USER CODE END 1 */
+
+/**
+  * @}
+  */
+
+/**
+  * @}
+  */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
