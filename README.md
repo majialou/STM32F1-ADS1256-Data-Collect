@@ -51,6 +51,7 @@ The communication protocol is defined in main.c
 * | 0xFE  | 0xA5  | LEN=0x0 |  0x5C  |
 *  single channel AIN0 
 */
+
 static void uart_packet_parse( uart_data_stuc_t *msg )
 {  
     if( msg->rxbuf[0] == 0xFE &&  msg->rxbuf[3+msg->rxbuf[2]] == 0x5c){
